@@ -1,36 +1,16 @@
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/wait.h>
-#define CONNECT_CHANNEL 100
-#define MAX_CLIENT_NAME 100
-#define MAX_CLIENTS 100
-#define SERVER_BUSY 1
-#define SERVER_READY 5
-#define SUCCESSFULL 1
-#define USER_EXIST 5
-#define CLIENT_LIMIT_EXCEEDED 2
-#define CLIENT_REQUESTED 1
-#define FINISHED 0
-#define NOT_REPLIED 10
-#define ACK 0
-#define NACK 1
+#include "myheader.h"
 typedef struct Client_data 
 {
     /* data */
     char client_name[MAX_CLIENT_NAME];
-    int key;
+    key_t key;
     int request_count;
+    pthread_t thread_number;
 
 }Client_data;
 typedef struct Response
 {
-    int key;
+    key_t key;
     int status;
     int server_reply;
     int ack;
@@ -41,6 +21,11 @@ typedef struct Request
     int client_status;
 
 }request;
+typedef struct Communication
+{
+    int x;
+    char test[100];
+}communication;
 typedef struct Channel
 {
     response Server_response;
@@ -52,12 +37,48 @@ void* test()
 {
 
     scanf("%c",&check);
-    printf("%c hello\n",check);
+    pthread_exit(0);
+}
+void *worker(void *data)
+{   
+    printf("worker thread created\n");
+    
+    
+    // int shmid;
+    Client_data *client_data;
+    client_data = (Client_data*) data;
+    
+    // if ((shmid = shmget(client_data->key,sizeof(communication), 0666)) < 0) {
+    //     perror("Server not reachable.");
+    //     exit(1);
+    // }
+    // printf("HELLO MF\n");
+    // int shmid = *((int*)data);
+    // communication *data_comm;
+    // data_comm = (communication*) shmat(shmid,(void*)0,0);
+    //     printf("wsdfghj%c",data_comm-> test[0]);
+    int shmid2 = shmget(client_data->key,sizeof(communication),0666|IPC_CREAT);
+        communication *data_comm;
+        data_comm = (communication*) shmat(shmid2,(void*)0,0);
+        printf("before%s",data_comm->test);
+        data_comm->test[0] ='$';
+        printf("agfshgdtfnb%c",data_comm->test[0]);
+    fflush(stdout);
+    while(data_comm-> test[0]== '$')
+    {
+        sleep(1);
+    }
+    printf("%s sent %s ",client_data->client_name , data_comm->test);
+    fflush(stdout);
+    // printf("goodbuye\n");
+    shmdt(data_comm);
+    shmctl(shmid2, IPC_RMID, NULL);
     pthread_exit(0);
 }
 int main(int argc, char *argv[])
 {
     pthread_t th1;
+    pthread_t worker_thread;
     check='\0';
     pthread_create(&th1, NULL, test,NULL);
     Client_data client_list[MAX_CLIENTS];
@@ -97,17 +118,36 @@ int main(int argc, char *argv[])
     if(connection->Server_response.server_reply != USER_EXIST)
     {
         connection->Server_response.server_reply = SUCCESSFULL;
-
-        connection->Server_response.key= 555;
+        
+        
         printf("Communication channel for %s is created\n",connection->Client_request.name);
         strcpy(client_list[no_of_clients].client_name , connection->Client_request.name);
-        client_list[no_of_clients++].key= connection->Server_response.key;
-
+        connection->Server_response.key= no_of_clients + 1234;
+        // ftok(connection->Client_request.name , 69);
+        printf("some %d\n",connection->Server_response.key);
+        // int shmid2 = shmget(connection->Server_response.key,sizeof(communication),0666|IPC_CREAT);
+        client_list[no_of_clients].key= connection->Server_response.key;
+        // communication *data_comm;
+        // data_comm = (communication*) shmat(shmid,(void*)0,0);
+        // printf("before%s",data_comm->test);
+        // data_comm->test[0] ='$';
+        // printf("agfshgdtfnb%c",data_comm->test[0]);
+        // shmdt(data_comm);
+        pthread_create(&worker_thread, NULL, worker,(void*) &client_list[no_of_clients]);
+        // pthread_create(&worker_thread, NULL, worker, (void*) &shmid2);
+        client_list[no_of_clients].thread_number=worker_thread;
+        no_of_clients++;
     }
+    sleep(1);
     connection->Server_response.status =SERVER_READY;
     connection->Client_request.client_status= FINISHED;
     }
     pthread_join(th1, NULL);
+    // pthread_join(worker_thread, NULL);
+    for(int i=0; i< no_of_clients;i++)
+    {
+        pthread_join(client_list[i].thread_number,NULL);
+    }
     shmdt(connection);
     shmctl(shmid, IPC_RMID, NULL);
 }

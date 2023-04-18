@@ -1,27 +1,7 @@
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/wait.h>
-#define CONNECT_CHANNEL 100
-#define MAX_CLIENT_NAME 100
-#define MAX_CLIENTS 100
-#define SERVER_BUSY 1
-#define SERVER_READY 5
-#define SUCCESSFULL 1
-#define USER_EXIST 5
-#define CLIENT_LIMIT_EXCEEDED 2
-#define CLIENT_REQUESTED 1
-#define FINISHED 0
-#define ACK 0
-#define NACK 1
+#include "myheader.h"
 typedef struct Response
 {
-    int key;
+    key_t key;
     int status;
     int server_reply;
     int ack;
@@ -32,6 +12,11 @@ typedef struct Request
     int client_status;
 
 }request;
+typedef struct Communication
+{
+    int x;
+    char test[100];
+}communication;
 typedef struct Channel
 {
     response Server_response;
@@ -81,11 +66,29 @@ int main(int argc, char *argv[])
     else if( connection->Server_response.server_reply == SUCCESSFULL)
     {
         printf("Connection successfull with %d \n",connection->Server_response.key);
+        
+        int shm;
+        if ((shm = shmget(connection->Server_response.key,sizeof(communication), 0666)) < 0) {
+        perror("Server not reachable.");
+        exit(1);}
+    communication *data_comm;
+    data_comm = (communication*) shmat(shm,(void*)0,0);printf("Send a message to server \n");
+        char x = '\0';
+        int i=0;
+        while(x!='\n'){
+            scanf("%c",&x);
+            data_comm->test[i] = x;
+            i++;
+        }
+
     }
     else if(connection->Server_response.server_reply== CLIENT_LIMIT_EXCEEDED)
     {
         printf("Server too busy, Try after some time\n");
+        
     }
+    
+    
     //detach from shared memory 
     shmdt(connection);
 }
