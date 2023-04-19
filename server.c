@@ -16,24 +16,64 @@ typedef struct Response
     int server_reply;
     int ack;
 }response;
+typedef struct Arithmetic{
+    float x;
+    float y;
+    char action;
+}arithmetic;
+typedef struct EvenOrOdd{
+    int x;
+}evenOrOdd;
+typedef struct IsPrime{
+    int x;
+}isPrime;
+
+
+typedef struct com_Response
+{
+    char msg[100];
+    float ans;
+    int status;
+    int ack;
+}com_response;
+
 typedef struct Request
 {
     char name[MAX_CLIENT_NAME];
     int client_status;
 
 }request;
+
+typedef struct comRequest
+{
+    int request_type;
+    int client_status;
+    arithmetic arth;
+    evenOrOdd eoo;
+    isPrime ip;
+
+}com_request;
+
 typedef struct Communication
 {
-    int x;
-    char test[100];
+    com_response Server_response;
+    com_request Client_request;
 }communication;
+
 typedef struct Channel
 {
     response Server_response;
     request Client_request;
     sem_t sem;
-
+    
 }channel;
+
+typedef struct Com_channel
+{
+    com_response Server_response;
+    com_request Client_request;
+    
+}Com_channel;
 char check;
 void* test()
 {
@@ -44,37 +84,48 @@ void* test()
 void *worker(void *data)
 {   
     printf("worker thread created\n");
-    
-    
     // int shmid;
     Client_data *client_data;
     client_data = (Client_data*) data;
-    
-    // if ((shmid = shmget(client_data->key,sizeof(communication), 0666)) < 0) {
-    //     perror("Server not reachable.");
-    //     exit(1);
-    // }
-    // printf("HELLO MF\n");
-    // int shmid = *((int*)data);
-    // communication *data_comm;
-    // data_comm = (communication*) shmat(shmid,(void*)0,0);
-    //     printf("wsdfghj%c",data_comm-> test[0]);
     int shmid2 = shmget(client_data->key,sizeof(communication),0666|IPC_CREAT);
         communication *data_comm;
         data_comm = (communication*) shmat(shmid2,(void*)0,0);
-
-        data_comm->test[0] ='$';
+        data_comm->Server_response.status  = SERVER_READY;
         client_data->Comm_channel_isCreated= true;
     fflush(stdout);
-    while(data_comm-> test[0]== '$')
+    while(data_comm->Client_request.client_status!=STOP && check=='\0'){
+    data_comm->Server_response.status  = SERVER_READY;
+    while(data_comm->Client_request.client_status!=CLIENT_REQUESTED && data_comm->Client_request.client_status!=STOP && check=='\0')
     {
         sleep(1);
     }
-    printf("%s sent %s ",client_data->client_name , data_comm->test);
+    if(data_comm->Client_request.client_status==STOP || check!='\0')
+    break;
+    data_comm->Server_response.ack = ACK;
+    data_comm->Server_response.status = PROCESSING;
+    printf("%s requested %d this operation",client_data->client_name,data_comm->Client_request.request_type);
+    if(data_comm->Client_request.request_type==1){
+        float x = data_comm->Client_request.arth.x;
+        float y = data_comm->Client_request.arth.y;
+        char op = data_comm->Client_request.arth.action;
+        if(op =='+'){
+            float ans = x+y;
+            data_comm->Server_response.ans = ans;
+            
+        }
+    }
     fflush(stdout);
+    char* str = "good";
+    strcpy(data_comm->Server_response.msg,str);
+    data_comm->Server_response.status = SUCCESSFULL;
+    while(data_comm->Client_request.client_status!=MSG_REC){
+        sleep(1);
+    }
+    }
     // printf("goodbuye\n");
     shmdt(data_comm);
     shmctl(shmid2, IPC_RMID, NULL);
+    printf("communication close\n");
     pthread_exit(0);
 }
 int main(int argc, char *argv[])
