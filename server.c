@@ -67,7 +67,7 @@ typedef struct Channel
     sem_t sem;
     
 }channel;
-
+int total_req=0;
 typedef struct Com_channel
 {
     com_response Server_response;
@@ -75,6 +75,10 @@ typedef struct Com_channel
     
 }Com_channel;
 char check;
+bool is_prime(int x){
+    //logic;
+    return true;
+}
 void* test()
 {
 
@@ -103,7 +107,7 @@ void *worker(void *data)
     break;
     data_comm->Server_response.ack = ACK;
     data_comm->Server_response.status = PROCESSING;
-    printf("%s requested %d this operation",client_data->client_name,data_comm->Client_request.request_type);
+    printf("%s requested %d this operation\n",client_data->client_name,data_comm->Client_request.request_type);
     if(data_comm->Client_request.request_type==1){
         float x = data_comm->Client_request.arth.x;
         float y = data_comm->Client_request.arth.y;
@@ -111,18 +115,85 @@ void *worker(void *data)
         if(op =='+'){
             float ans = x+y;
             data_comm->Server_response.ans = ans;
-            
+            char* str = "addition successfull";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;
+        }
+        else if(op =='-'){
+            float ans = x-y;
+            data_comm->Server_response.ans = ans;
+            char* str = "addition successfull";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;
+        }
+        else if(op =='/'){
+            if (y==0){
+                data_comm->Server_response.status = NOT_SUCCESSFULL;
+                char* str = "divide by zero error";
+                strcpy(data_comm->Server_response.msg,str); 
+            }
+            else{
+            float ans = x/y;
+            data_comm->Server_response.ans = ans;
+            char* str = "addition successfull";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;
+
+            }
+        }
+        else if(op =='*'){
+            float ans = x*y;
+            data_comm->Server_response.ans = ans;
+            char* str = "addition successfull";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;
         }
     }
+    else if(data_comm->Client_request.request_type==2){
+        int x = data_comm->Client_request.eoo.x;
+        if(x%2){
+            char* str = "the number is odd";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;   
+            data_comm->Server_response.ans = 1;         
+        }
+        else{
+            char* str = "the number is even";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL; 
+            data_comm->Server_response.ans = 0;         
+        }
+    }
+    else if(data_comm->Client_request.request_type==3){
+        int x = data_comm->Client_request.ip.x;
+        if(is_prime(x)){
+            char* str = "the number is prime";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;   
+            data_comm->Server_response.ans = 1;            
+        }
+        else{
+            char* str = "the number is not prime";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = SUCCESSFULL;   
+            data_comm->Server_response.ans = 0;              
+        }
+    }
+    else{
+            char* str = "operation not correct";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = NOT_SUCCESSFULL;   
+            data_comm->Server_response.ans = 0; 
+    }
     fflush(stdout);
-    char* str = "good";
-    strcpy(data_comm->Server_response.msg,str);
-    data_comm->Server_response.status = SUCCESSFULL;
     while(data_comm->Client_request.client_status!=MSG_REC){
         sleep(1);
     }
+    client_data->request_count++;
+    total_req++;
     }
     // printf("goodbuye\n");
+    printf("total client requests  = %d\n",client_data->request_count);
     shmdt(data_comm);
     shmctl(shmid2, IPC_RMID, NULL);
     printf("communication close\n");
@@ -206,6 +277,7 @@ int main(int argc, char *argv[])
     {
         pthread_join(client_list[i].thread_number,NULL);
     }
+    printf("Server gave total %d responses for %d clients\n ",total_req,no_of_clients);
     sem_post(&connection->sem);
     shmdt(connection);
     shmctl(shmid, IPC_RMID, NULL);

@@ -161,6 +161,9 @@ int main(int argc, char *argv[])
             data_comm->Client_request.request_type=3;
             scanf("%d",&data_comm->Client_request.ip.x);         
         }
+        else{
+            
+        }
         while(data_comm!=NULL && data_comm->Server_response.status!= SERVER_READY){
             sleep(1);
         }
@@ -180,6 +183,9 @@ int main(int argc, char *argv[])
             }
             if(data_comm->Server_response.status == SUCCESSFULL) {
                 printf("%s\n",data_comm->Server_response.msg);
+                if(data_comm->Client_request.request_type==1){
+                    printf("the operation result is:%f\n",data_comm->Server_response.ans);
+                }
                 data_comm->Client_request.client_status = MSG_REC;
             }
             else {
