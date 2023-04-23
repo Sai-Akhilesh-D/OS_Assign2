@@ -133,6 +133,10 @@ int main(int argc, char *argv[])
     int ik = 0;
     while(1){
         ik++;
+        printf("Press 1: for Arthemetic operation\n");
+        printf("Press 2: for Even or Odd operation\n");
+        printf("Press 3: for Is Prime operation\n");
+        printf("Press -1: to close communication channel\n");
         printf("enter the number:\n");
         scanf("%d",&x);
         printf("u entered %d\n",x);
@@ -162,7 +166,7 @@ int main(int argc, char *argv[])
             scanf("%d",&data_comm->Client_request.ip.x);         
         }
         else{
-            
+            data_comm->Client_request.request_type=x;
         }
         while(data_comm!=NULL && data_comm->Server_response.status!= SERVER_READY){
             sleep(1);

@@ -75,8 +75,16 @@ typedef struct Com_channel
     
 }Com_channel;
 char check;
-bool is_prime(int x){
+bool is_prime(int n){
     //logic;
+    if (n <= 1)
+        return false;
+ 
+    // Check from 2 to n-1
+    for (int i = 2; i < n; i++)
+        if (n % i == 0)
+            return false;
+ 
     return true;
 }
 void* test()
@@ -98,7 +106,8 @@ void *worker(void *data)
         client_data->Comm_channel_isCreated= true;
     fflush(stdout);
     while(data_comm->Client_request.client_status!=STOP && check=='\0'){
-    data_comm->Server_response.status  = SERVER_READY;
+    data_comm->Server_response.status  = SERVER_READY; 
+    
     while(data_comm->Client_request.client_status!=CLIENT_REQUESTED && data_comm->Client_request.client_status!=STOP && check=='\0')
     {
         sleep(1);
@@ -122,7 +131,7 @@ void *worker(void *data)
         else if(op =='-'){
             float ans = x-y;
             data_comm->Server_response.ans = ans;
-            char* str = "addition successfull";
+            char* str = "subtraction successfull";
             strcpy(data_comm->Server_response.msg,str);
             data_comm->Server_response.status = SUCCESSFULL;
         }
@@ -135,7 +144,7 @@ void *worker(void *data)
             else{
             float ans = x/y;
             data_comm->Server_response.ans = ans;
-            char* str = "addition successfull";
+            char* str = "division successfull";
             strcpy(data_comm->Server_response.msg,str);
             data_comm->Server_response.status = SUCCESSFULL;
 
@@ -144,9 +153,14 @@ void *worker(void *data)
         else if(op =='*'){
             float ans = x*y;
             data_comm->Server_response.ans = ans;
-            char* str = "addition successfull";
+            char* str = "multiplication successfull";
             strcpy(data_comm->Server_response.msg,str);
             data_comm->Server_response.status = SUCCESSFULL;
+        }
+        else{
+            char* str = "no such arth operation";
+            strcpy(data_comm->Server_response.msg,str);
+            data_comm->Server_response.status = NOT_SUCCESSFULL;
         }
     }
     else if(data_comm->Client_request.request_type==2){
