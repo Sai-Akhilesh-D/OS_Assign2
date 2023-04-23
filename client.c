@@ -96,18 +96,18 @@ int main(int argc, char *argv[])
     sleep(5);
     while(connection->Server_response.status!= SERVER_READY )
     {
-        sleep(1);
+        usleep(1);
     }
     connection->Server_response.ack=NACK;
     strcpy(connection->Client_request.name, argv[1]);
     connection-> Client_request.client_status=CLIENT_REQUESTED;
     while(connection->Server_response.ack == NACK)
     {
-        sleep(1);
+        usleep(1);
     }
     while(connection->Server_response.status == SERVER_BUSY)
     {
-        sleep(1);
+        usleep(1);
     }
     if(connection->Server_response.server_reply == USER_EXIST)
     {
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
             data_comm->Client_request.request_type=x;
         }
         while(data_comm!=NULL && data_comm->Server_response.status!= SERVER_READY){
-            sleep(1);
+            usleep(1);
         }
         if(data_comm==NULL)
         {
@@ -179,11 +179,11 @@ int main(int argc, char *argv[])
         data_comm->Server_response.ack = NACK;
         data_comm->Client_request.client_status = CLIENT_REQUESTED;
             while(data_comm->Server_response.ack == NACK){
-                sleep(1);
+                usleep(1);
             }
             while (data_comm->Server_response.status == PROCESSING)
             {
-                sleep(1);
+                usleep(1);
             }
             if(data_comm->Server_response.status == SUCCESSFULL) {
                 printf("%s\n",data_comm->Server_response.msg);

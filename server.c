@@ -110,7 +110,7 @@ void *worker(void *data)
     
     while(data_comm->Client_request.client_status!=CLIENT_REQUESTED && data_comm->Client_request.client_status!=STOP && check=='\0')
     {
-        sleep(1);
+        usleep(1);
     }
     if(data_comm->Client_request.client_status==STOP || check!='\0')
     break;
@@ -201,13 +201,13 @@ void *worker(void *data)
     }
     fflush(stdout);
     while(data_comm->Client_request.client_status!=MSG_REC){
-        sleep(1);
+        usleep(1);
     }
     client_data->request_count++;
     total_req++;
     }
     // printf("goodbuye\n");
-    printf("total client requests  = %d\n",client_data->request_count);
+    printf("total client (%s) requests  = %d\n",client_data->client_name,client_data->request_count);
     shmdt(data_comm);
     shmctl(shmid2, IPC_RMID, NULL);
     printf("communication close\n");
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     while(connection->Client_request.client_status != CLIENT_REQUESTED && check=='\0')
     {
     
-        sleep(1);
+        usleep(1);
     }
     connection->Server_response.server_reply = SUCCESSFULL;
     if(check!= '\0')break;
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
         client_list[no_of_clients].Comm_channel_isCreated=false;
         pthread_create(&worker_thread, NULL, worker,(void*) &client_list[no_of_clients]);
         // pthread_create(&worker_thread, NULL, worker, (void*) &shmid2);
-        while(!client_list[no_of_clients].Comm_channel_isCreated)sleep(1);
+        while(!client_list[no_of_clients].Comm_channel_isCreated)usleep(1);
         client_list[no_of_clients].thread_number=worker_thread;
         no_of_clients++;
     }
@@ -290,6 +290,10 @@ int main(int argc, char *argv[])
     for(int i=0; i< no_of_clients;i++)
     {
         pthread_join(client_list[i].thread_number,NULL);
+    }
+    for(int i=0 ;i<no_of_clients;i++)
+    {
+        printf("%s requested %d resquests\n",client_list[i].client_name,client_list[i].request_count);
     }
     printf("Server gave total %d responses for %d clients\n ",total_req,no_of_clients);
     sem_post(&connection->sem);
