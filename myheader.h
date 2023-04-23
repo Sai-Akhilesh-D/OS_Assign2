@@ -26,6 +26,12 @@
 #define STOP 56
 #define NOT_CLIENT_REQUESTED 89
 #define MSG_REC 69
+#define PRINT_INFO(MSG, ...) { \
+    int ii=rand(); \
+	printf ( "%s %d INFO %d:%d %ld %s %s %d : " MSG ";;\n", \
+	"TODO_PRINT_TIME",ii, getpid(), getppid(), pthread_self(), __FILE__, __FUNCTION__, \
+	__LINE__,  ##__VA_ARGS__); \
+}
 // typedef struct Response
 // {
 //     key_t key;

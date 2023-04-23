@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 {
     if(argc != 2)
     {
-        printf("Wrong arguments\n");
+        PRINT_INFO("Wrong arguments\n");
         exit(1);
     }
     channel *connection;
@@ -84,15 +84,15 @@ int main(int argc, char *argv[])
   
     // shmat to attach to shared memory
     connection = (channel*) shmat(shmid,(void*)0,0);
-    printf("Client waiting for connection channel\n");
+    PRINT_INFO("Client waiting for connection channel\n");
         sem_getvalue(&connection->sem, &sem_value);
-        printf("3sem value: %d\n",sem_value);
+        PRINT_INFO("3sem value: %d\n",sem_value);
 
     sem_wait(&connection->sem);
         sem_getvalue(&connection->sem, &sem_value);
-        printf("2sem value: %d\n",sem_value);
+        PRINT_INFO("2sem value: %d\n",sem_value);
 
-    printf("client got connection channel\n");
+    PRINT_INFO("client got connection channel\n");
     sleep(5);
     while(connection->Server_response.status!= SERVER_READY )
     {
@@ -111,12 +111,12 @@ int main(int argc, char *argv[])
     }
     if(connection->Server_response.server_reply == USER_EXIST)
     {
-        printf("user already existed with name as %s\n",connection->Client_request.name);
+        PRINT_INFO("user already existed with name as %s\n",connection->Client_request.name);
         sem_post(&connection->sem);
     }
     else if( connection->Server_response.server_reply == SUCCESSFULL)
     {
-        printf("Connection successfull with %d \n",connection->Server_response.key);
+        PRINT_INFO("Connection successfull with Communication channel with key value=%d \n",connection->Server_response.key);
 
         int shm;
         if ((shm = shmget(connection->Server_response.key,sizeof(communication), 0666)) < 0) {
@@ -125,23 +125,22 @@ int main(int argc, char *argv[])
     communication *data_comm;
     data_comm = (communication*) shmat(shm,(void*)0,0);
         sem_getvalue(&connection->sem, &sem_value);
-        printf("1sem value: %d\n",sem_value);
+        PRINT_INFO("1sem value: %d\n",sem_value);
         sem_post(&connection->sem);
         sem_getvalue(&connection->sem, &sem_value);
-        printf("0sem value: %d\n",sem_value);
+        PRINT_INFO("0sem value: %d\n",sem_value);
     int x = 0;
     int ik = 0;
     while(1){
         ik++;
-        printf("Press 1: for Arthemetic operation\n");
-        printf("Press 2: for Even or Odd operation\n");
-        printf("Press 3: for Is Prime operation\n");
-        printf("Press -1: to close communication channel\n");
-        printf("enter the number:\n");
+        PRINT_INFO("Press 1: for Arthemetic operation\n");
+        PRINT_INFO("Press 2: for Even or Odd operation\n");
+        PRINT_INFO("Press 3: for Is Prime operation\n");
+        PRINT_INFO("Press -1: to close communication channel\n");
+        PRINT_INFO("enter the number:\n");
         scanf("%d",&x);
-        printf("u entered %d\n",x);
         if(data_comm == NULL){
-            printf("server stopped\n");
+            PRINT_INFO("server stopped\n");
             exit(1);
         }
         if(x==-1){
@@ -149,19 +148,19 @@ int main(int argc, char *argv[])
                     break;
         }
         else if(x==1){
-            printf("Please enter two operands separated by space and the type of arthimaetic operation\n");
+            PRINT_INFO("Please enter two operands separated by space and the type of arthimaetic operation\n");
             data_comm->Client_request.request_type=1;
             scanf("%f",&data_comm->Client_request.arth.x);       
             scanf("%f",&data_comm->Client_request.arth.y);       
             scanf(" %c",&data_comm->Client_request.arth.action);       
         }
         else if(x==2){
-            printf("Please enter operands (evenorodd)\n");
+            PRINT_INFO("Please enter operands (evenorodd)\n");
             data_comm->Client_request.request_type=2;
             scanf("%d",&data_comm->Client_request.eoo.x);       
         }
         else if(x==3){
-            printf("Please enter operands (isPrime)\n");
+            PRINT_INFO("Please enter operands (isPrime)\n");
             data_comm->Client_request.request_type=3;
             scanf("%d",&data_comm->Client_request.ip.x);         
         }
@@ -173,11 +172,12 @@ int main(int argc, char *argv[])
         }
         if(data_comm==NULL)
         {
-            printf("server stopped\n");
+            PRINT_INFO("server stopped\n");
             exit(1);
         }
         data_comm->Server_response.ack = NACK;
         data_comm->Client_request.client_status = CLIENT_REQUESTED;
+        PRINT_INFO("A request for %d operation is sent\n",x);
             while(data_comm->Server_response.ack == NACK){
                 usleep(1);
             }
@@ -186,14 +186,15 @@ int main(int argc, char *argv[])
                 usleep(1);
             }
             if(data_comm->Server_response.status == SUCCESSFULL) {
-                printf("%s\n",data_comm->Server_response.msg);
+                PRINT_INFO("%s\n",data_comm->Server_response.msg);
                 if(data_comm->Client_request.request_type==1){
-                    printf("the operation result is:%f\n",data_comm->Server_response.ans);
+                    PRINT_INFO("A response is received from the communication channel")
+                    PRINT_INFO("The operation result is:%f\n",data_comm->Server_response.ans);
                 }
                 data_comm->Client_request.client_status = MSG_REC;
             }
             else {
-                printf("%s\n",data_comm->Server_response.msg);
+                PRINT_INFO("%s\n",data_comm->Server_response.msg);
                 data_comm->Client_request.client_status = MSG_REC;
             }
         
@@ -201,7 +202,7 @@ int main(int argc, char *argv[])
     }
     else if(connection->Server_response.server_reply== CLIENT_LIMIT_EXCEEDED)
     {
-        printf("Server too busy, Try after some time\n");
+        PRINT_INFO("Server too busy, Try after some time\n");
         sem_post(&connection->sem);
         
     }

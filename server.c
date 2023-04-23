@@ -1,4 +1,5 @@
 #include "myheader.h"
+
 typedef struct Client_data 
 {
     /* data */
@@ -7,6 +8,7 @@ typedef struct Client_data
     int request_count;
     pthread_t thread_number;
     bool Comm_channel_isCreated;
+    int cur_run;
 
 }Client_data;
 typedef struct Response
@@ -95,7 +97,7 @@ void* test()
 }
 void *worker(void *data)
 {   
-    printf("worker thread created\n");
+    PRINT_INFO("worker thread created\n");
     // int shmid;
     Client_data *client_data;
     client_data = (Client_data*) data;
@@ -116,7 +118,20 @@ void *worker(void *data)
     break;
     data_comm->Server_response.ack = ACK;
     data_comm->Server_response.status = PROCESSING;
-    printf("%s requested %d this operation\n",client_data->client_name,data_comm->Client_request.request_type);
+    switch(data_comm->Client_request.request_type)
+    {
+        case 1:PRINT_INFO("%s requested Arithmetic operation\n",client_data->client_name);
+                break;
+        case 2:PRINT_INFO("%s requested EvenOrOdd operation\n",client_data->client_name);
+                break;
+        case 3:PRINT_INFO("%s requested IsPrime operation\n",client_data->client_name);
+                break;
+        case -1:PRINT_INFO("%s requested Unregister operation \n",client_data->client_name);
+                break;
+        default: PRINT_INFO("%s requested for an invalid operation \n",client_data->client_name);
+                break;
+    }
+    
     if(data_comm->Client_request.request_type==1){
         float x = data_comm->Client_request.arth.x;
         float y = data_comm->Client_request.arth.y;
@@ -206,11 +221,13 @@ void *worker(void *data)
     client_data->request_count++;
     total_req++;
     }
-    // printf("goodbuye\n");
-    printf("total client (%s) requests  = %d\n",client_data->client_name,client_data->request_count);
+    // PRINT_INFO("goodbuye\n");
+    client_data->cur_run=0;
+    PRINT_INFO("total client (%s) requests  = %d\n",client_data->client_name,client_data->request_count);
     shmdt(data_comm);
     shmctl(shmid2, IPC_RMID, NULL);
-    printf("communication close\n");
+    PRINT_INFO("Server unregisterd client %s \n",client_data->client_name);
+    PRINT_INFO("communication close\n");
     pthread_exit(0);
 }
 int main(int argc, char *argv[])
@@ -234,7 +251,7 @@ int main(int argc, char *argv[])
     connection->Server_response.ack=NACK;
     connection->Server_response.status = SERVER_READY;
     while(check == '\0'){
-    printf("Server is waiting for client\n");
+    PRINT_INFO("Server is waiting for client\n");
     bool temp=false;
     while(connection->Client_request.client_status != CLIENT_REQUESTED && check=='\0')
     {
@@ -245,13 +262,13 @@ int main(int argc, char *argv[])
     if(check!= '\0')break;
     connection->Server_response.ack=ACK;
     connection-> Server_response.status = SERVER_BUSY;
-    printf("Server is processing %s request\n", connection->Client_request.name);
+    PRINT_INFO("Server is processing %s request\n", connection->Client_request.name);
     for(int i=0 ;i< MAX_CLIENTS ;i++)
     {
-        if(!strcmp(connection-> Client_request.name, client_list[i].client_name ))
+        if(!strcmp(connection-> Client_request.name, client_list[i].client_name ) && client_list[i].cur_run==1)
         {
             connection->Server_response.server_reply=USER_EXIST;
-            printf("user already existed with name as %s\n",connection->Client_request.name);
+            PRINT_INFO("user already existed with name as %s\n",connection->Client_request.name);
             break;
         }
 
@@ -261,7 +278,7 @@ int main(int argc, char *argv[])
         connection->Server_response.server_reply = SUCCESSFULL;
         
         
-        printf("Communication channel for %s is created\n",connection->Client_request.name);
+        PRINT_INFO("Communication channel for %s is created\n",connection->Client_request.name);
         strcpy(client_list[no_of_clients].client_name , connection->Client_request.name);
         connection->Server_response.key= no_of_clients + 1234;
         // ftok(connection->Client_request.name , 69);
@@ -269,11 +286,12 @@ int main(int argc, char *argv[])
         client_list[no_of_clients].key= connection->Server_response.key;
         // communication *data_comm;
         // data_comm = (communication*) shmat(shmid,(void*)0,0);
-        // printf("before%s",data_comm->test);
+        // PRINT_INFO("before%s",data_comm->test);
         // data_comm->test[0] ='$';
-        // printf("agfshgdtfnb%c",data_comm->test[0]);
+        // PRINT_INFO("agfshgdtfnb%c",data_comm->test[0]);
         // shmdt(data_comm);
         client_list[no_of_clients].Comm_channel_isCreated=false;
+        client_list[no_of_clients].cur_run = 1;
         pthread_create(&worker_thread, NULL, worker,(void*) &client_list[no_of_clients]);
         // pthread_create(&worker_thread, NULL, worker, (void*) &shmid2);
         while(!client_list[no_of_clients].Comm_channel_isCreated)usleep(1);
@@ -293,9 +311,9 @@ int main(int argc, char *argv[])
     }
     for(int i=0 ;i<no_of_clients;i++)
     {
-        printf("%s requested %d resquests\n",client_list[i].client_name,client_list[i].request_count);
+        PRINT_INFO("%s requested %d resquests\n",client_list[i].client_name,client_list[i].request_count);
     }
-    printf("Server gave total %d responses for %d clients\n ",total_req,no_of_clients);
+    PRINT_INFO("Server gave total %d responses for %d clients\n ",total_req,no_of_clients);
     sem_post(&connection->sem);
     shmdt(connection);
     shmctl(shmid, IPC_RMID, NULL);
